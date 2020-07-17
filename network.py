@@ -60,3 +60,18 @@ def get_ResNet_backbone_network(embedding_size=128, fc_layer_size=1024, l2_norm=
         model.add(tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1)))
 
     return model
+
+@tf.function
+def train_step(X,y,model,optimizer,margin=1):
+    with tf.GradientTape() as tape:
+        embeddings = model(X, training=True)
+        loss, fraction = batch_all_triplet_loss(y, embeddings, margin)
+        grads = tape.gradient(loss, model.trainable_variables)
+        optimizer.apply_gradients(zip(grads, model.trainable_variables))
+    return loss,fraction
+
+@tf.function
+def val_step(X,y,model,margin=1):
+    embeddings = model(X)
+    loss, fraction = batch_all_triplet_loss(y, embeddings, margin)
+    return loss,fraction

@@ -9,6 +9,8 @@ from tqdm.auto import tqdm
 raw_data_dir = r'/media/rrtammyfs/labDatabase/celeb_a/faces'
 processed_data_dir = r'/media/rrtammyfs/labDatabase/celeb_a/faces/processed/'
 os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
+
+
 list_imgs = glob(os.path.join(raw_data_dir,"*/*.jpg"))
 mtcnn = MTCNN(margin=10, select_largest=True, post_process=False)#, device='cuda:0')
 for img_path in tqdm(list_imgs):

@@ -36,41 +36,6 @@ def augment_img(image,label,flip_lr=True,quality=False):
         image = tf.image.random_jpeg_quality(image,80,100)
     return image, label
 
-def get_anchor_pos_neg(data):
-    anchor = data.iloc[np.random.randint(0,10000)]
-    anchor_image = plt.imread(anchor.name)
-    positive = data[data['label']==anchor.label].iloc[0]
-    if anchor.name == positive.name:
-        if len(data[data['label'] == anchor.label])>1:
-            positive = data[data['label'] == anchor.label].iloc[1]
-    positive_image = plt.imread(positive.name)
-    while(1):
-        negative = data.iloc[np.random.randint(10000,20000)]
-        if negative.label != positive.label:
-            break
-    negative_image = plt.imread(negative.name)
-    return anchor_image,positive_image,negative_image
-
-def get_dists(model,data):
-    pos_dists = []
-    neg_dists = []
-    num_errors = 0
-    for i in range(1000):
-        anchor, pos, neg = get_anchor_pos_neg(data)
-        a = model(np.expand_dims(anchor/255,0)).numpy()
-        b = model(np.expand_dims(pos/255,0)).numpy()
-        c = model(np.expand_dims(neg/255,0)).numpy()
-        pos_dist = np.linalg.norm(a.ravel()-b.ravel())
-        pos_dists += [pos_dist]
-        neg_dist = np.linalg.norm(a.ravel()-c.ravel())
-        neg_dists += [neg_dist]
-        if (pos_dist>neg_dist):
-            num_errors += 1
-            print(f" ERROR {num_errors}")
-        if (i%100==0):
-            print(i)
-        # print(f"Pos distance : {pos_dist} Neg distance : {neg_dist}")
-    return pos_dists,neg_dists, num_errors
 
 def k_gen(df,k):
     for label in np.random.permutation(df.label.unique()):
@@ -90,6 +55,7 @@ def tf_dataset_from_paths(paths,flip=False,bs=128):
         list_ds = list_ds.map(tf.image.flip_left_right)
     list_ds = list_ds.prefetch(buffer_size=AUTOTUNE)
     return list_ds
+
 class TripletDataset:
     def __init__(self,labels_per_batch,labels_per_image):
         self.train_data = None
@@ -149,6 +115,7 @@ class TripletDataset:
         rand_labels = np.random.permutation(self.train_data.label.nunique())
         self.val_data = self.train_data[self.train_data.label.isin(rand_labels[:int(val_split*len(rand_labels))])]
         self.train_data = self.train_data[self.train_data.label.isin(rand_labels[int(val_split*len(rand_labels)):])]
+
     def gen_tf_dataset(self,prepare_for_training=True,repeat=False,augment=True):
         self.train_gen = partial(k_gen,df = self.train_data, k = self.labels_per_image)
         self.val_gen = partial(k_gen,df = self.val_data,k = self.labels_per_image)
@@ -172,8 +139,10 @@ class TripletDataset:
             self.val_ds = self.val_ds.prefetch(buffer_size=AUTOTUNE)
             if repeat:
                 self.val_ds = self.val_ds.repeat()
+
     def get_batch_size(self):
         return self.labels_per_image*self.labels_per_batch
+
     def get_steps_per_epoch(self):
         if self.val_data is not None:
             return self.train_data.label.nunique()//self.labels_per_batch, self.val_data.label.nunique()//self.labels_per_batch
