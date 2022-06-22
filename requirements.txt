@@ -1,5 +1,5 @@
 tensorflow_gpu==2.0.1
-numpy==1.17.3
+numpy==1.22.0
 facenet_pytorch==2.2.9
 tqdm==4.37.0
 scipy==0.19.1
